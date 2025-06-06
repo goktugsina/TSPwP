@@ -3,30 +3,41 @@ import java.util.*;
 
 public class Main {
     static int penaltyPerCity = 0;
-    static final int GRID_SIZE = 1000; // Grid size
+    static int GRID_SIZE = 1000;
     static Map<String, List<City>> gridMap = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         ArrayList<City> cities = new ArrayList<>();
 
-        File input = new File("input.txt"); 
+        File input = new File("input.txt");
         Scanner sc = new Scanner(input);
         penaltyPerCity = sc.nextInt();
 
+        int maxX = 0, maxY = 0;
         while (sc.hasNextInt()) {
             int id = sc.nextInt();
             int x = sc.nextInt();
             int y = sc.nextInt();
             City city = new City(id, x, y);
             cities.add(city);
-            String key = getGridKey(x, y);
-            gridMap.computeIfAbsent(key, k -> new ArrayList<>()).add(city);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
         }
         sc.close();
 
+        GRID_SIZE = Math.max(30, Math.min(600, (int)(Math.sqrt(maxX * maxY / (double) cities.size()))));
+
+        for (City city : cities) {
+            String key = getGridKey(city.x, city.y);
+            gridMap.computeIfAbsent(key, k -> new ArrayList<>()).add(city);
+        }
+
         City start = selectSmartStartCity(cities);
-        ArrayList<City> route = buildGreedyRoute(cities, start);
+        ArrayList<City> route = buildGreedyRouteWithLookahead(cities, start);
         apply2Opt(route);
+        insertCheapSkippedCities(route, cities);
+        attemptGlobalReinsertion(route, cities);
+        penaltyDrivenGreedyReinsertion(route, cities);
 
         int totalDistance = computeRouteDistance(route);
         int totalPenalty = computePenalty(cities);
@@ -38,7 +49,7 @@ public class Main {
         writer.write("\n");
         writer.close();
 
-        System.out.println("Çözüm 'output.txt' dosyasına yazıldı.");
+        System.out.println("Solution is in 'output.txt' ");
     }
 
     static String getGridKey(int x, int y) {
@@ -86,19 +97,26 @@ public class Main {
         return best;
     }
 
-    static ArrayList<City> buildGreedyRoute(List<City> cities, City start) {
+    static ArrayList<City> buildGreedyRouteWithLookahead(List<City> cities, City start) {
         ArrayList<City> route = new ArrayList<>();
         route.add(start);
         City current = start;
         while (true) {
             City best = null;
-            double bestRatio = -1;
+            double bestScore = Double.MAX_VALUE;
             for (City candidate : getNearbyCities(current)) {
                 if (!candidate.visited) {
-                    int dist = computeDistance(current, candidate);
-                    double ratio = (double) penaltyPerCity / dist;
-                    if (dist <= penaltyPerCity && ratio > bestRatio) {
-                        bestRatio = ratio;
+                    int d1 = computeDistance(current, candidate);
+                    int d2 = Integer.MAX_VALUE;
+                    for (City next : getNearbyCities(candidate)) {
+                        if (!next.visited && next != candidate) {
+                            int temp = computeDistance(candidate, next);
+                            if (temp < d2) d2 = temp;
+                        }
+                    }
+                    double score = d1 + 0.3 * d2;
+                    if (score < bestScore && d1 <= penaltyPerCity * 1.3) {
+                        bestScore = score;
                         best = candidate;
                     }
                 }
@@ -111,6 +129,71 @@ public class Main {
         return route;
     }
 
+    static void insertCheapSkippedCities(ArrayList<City> route, List<City> allCities) {
+        for (City skipped : allCities) {
+            if (skipped.visited) continue;
+            int bestPos = -1;
+            int minCostIncrease = Integer.MAX_VALUE;
+            for (int i = 0; i < route.size(); i++) {
+                int j = (i + 1) % route.size();
+                int oldCost = computeDistance(route.get(i), route.get(j));
+                int newCost = computeDistance(route.get(i), skipped) + computeDistance(skipped, route.get(j));
+                int delta = newCost - oldCost;
+                if (delta < penaltyPerCity * 1.2 && delta < minCostIncrease) {
+                    bestPos = j;
+                    minCostIncrease = delta;
+                }
+            }
+            if (bestPos != -1) {
+                route.add(bestPos, skipped);
+                skipped.visited = true;
+            }
+        }
+    }
+
+    static void attemptGlobalReinsertion(ArrayList<City> route, List<City> allCities) {
+        for (City skipped : allCities) {
+            if (skipped.visited) continue;
+            int bestIndex = -1;
+            int minIncrease = Integer.MAX_VALUE;
+            for (int i = 0; i < route.size(); i++) {
+                int j = (i + 1) % route.size();
+                int gain = computeDistance(route.get(i), skipped) + computeDistance(skipped, route.get(j)) - computeDistance(route.get(i), route.get(j));
+                if (gain < penaltyPerCity * 1.4 && gain < minIncrease) {
+                    minIncrease = gain;
+                    bestIndex = j;
+                }
+            }
+            if (bestIndex != -1) {
+                route.add(bestIndex, skipped);
+                skipped.visited = true;
+            }
+        }
+    }
+
+    static void penaltyDrivenGreedyReinsertion(ArrayList<City> route, List<City> allCities) {
+        for (City skipped : allCities) {
+            if (skipped.visited) continue;
+            int insertIndex = -1;
+            double bestRatio = 0.0;
+            for (int i = 0; i < route.size(); i++) {
+                int j = (i + 1) % route.size();
+                int oldCost = computeDistance(route.get(i), route.get(j));
+                int newCost = computeDistance(route.get(i), skipped) + computeDistance(skipped, route.get(j));
+                int delta = newCost - oldCost;
+                double ratio = (double) penaltyPerCity / (delta + 1);
+                if (ratio > bestRatio && delta < penaltyPerCity * 2) {
+                    bestRatio = ratio;
+                    insertIndex = j;
+                }
+            }
+            if (insertIndex != -1) {
+                route.add(insertIndex, skipped);
+                skipped.visited = true;
+            }
+        }
+    }
+
     static int computeDistance(City a, City b) {
         int dx = a.x - b.x, dy = a.y - b.y;
         return (int) Math.round(Math.sqrt(dx * dx + dy * dy));
@@ -121,7 +204,7 @@ public class Main {
         for (int i = 0; i < route.size() - 1; i++) {
             total += computeDistance(route.get(i), route.get(i + 1));
         }
-        total += computeDistance(route.get(route.size() - 1), route.get(0)); // return to start
+        total += computeDistance(route.get(route.size() - 1), route.get(0));
         return total;
     }
 
@@ -136,7 +219,7 @@ public class Main {
         while (improved) {
             improved = false;
             for (int i = 1; i < route.size() - 2; i++) {
-                for (int j = i + 1; j < route.size() - 1; j++) {
+                for (int j = i + 1; j < route.size() - 1; j += 5) {
                     City A = route.get(i - 1), B = route.get(i);
                     City C = route.get(j), D = route.get(j + 1);
                     int before = computeDistance(A, B) + computeDistance(C, D);
@@ -160,3 +243,5 @@ public class Main {
         }
     }
 }
+
+
