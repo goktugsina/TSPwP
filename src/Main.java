@@ -3,13 +3,13 @@ import java.util.*;
 
 public class Main {
     static int penaltyPerCity = 0;
-    static final int GRID_SIZE = 1000; // Grid boyutu (ayarlanabilir)
+    static final int GRID_SIZE = 1000; // Grid size
     static Map<String, List<City>> gridMap = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         ArrayList<City> cities = new ArrayList<>();
 
-        File input = new File("C:\\Users\\Göktuğ Sina\\IdeaProjects\\TSPwP\\src\\input.txt"); // input yolunu düzenle
+        File input = new File("input.txt"); 
         Scanner sc = new Scanner(input);
         penaltyPerCity = sc.nextInt();
 
