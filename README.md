@@ -1,124 +1,88 @@
-# TSPwP – Traveling Salesman Problem with Penalty
+# TSP with Penalty (TSPwP) Solver
 
-This project solves the **Traveling Salesman Problem with Penalty (TSPwP)**. In this variant, you can skip cities by paying a fixed penalty. The objective is to minimize:
-
-```
-Total Cost = Total Distance + (Penalty × Number of Skipped Cities)
-```
+This project implements an efficient heuristic algorithm to solve the **Traveling Salesman Problem with Penalty (TSPwP)**. In TSPwP, each city can either be visited or skipped. Skipping a city incurs a fixed penalty cost. The goal is to minimize the total cost, which is the sum of the travel distance and the penalties of skipped cities.
 
 ---
 
-## Features
-
-- 🧠 **Smart Initial City Selection** – based on central location and connectivity
-- 🚀 **Penalty/Distance Ratio Heuristic** – prioritize cities with high penalty and low cost
-- 🧭 **Grid-Based Spatial Filtering** – reduces search space for nearest cities
-- 🔁 **Lookahead-Based Greedy Selection** – considers next-next steps for smarter paths
-- ✂️ **2-opt Optimization** – locally improves the route by edge swaps
-- ⚡ **Fast for Large Inputs** – tested up to 50,000 cities with efficient runtime
-
----
-
-## 📊 Algorithm Explained
-
-This algorithm combines multiple powerful techniques to efficiently solve the TSP with penalties:
-
-### 1. Smart Initial City Selection
-The algorithm calculates the geometric center (average x and y). Then, it selects a city:
-- Close to the center
-- With the highest number of nearby cities within penalty range  
-  This ensures a central and well-connected starting point.
-
-### 2. Grid-Based Spatial Filtering
-To reduce computation time:
-- The map is divided into square grids (e.g., 1000x1000 units)
-- Each city is placed in a grid cell
-- When searching for the next city, only nearby grids (current + 8 neighbors) are considered  
-  This optimization scales well for 50,000+ cities.
-
-### 3. Penalty/Distance Ratio Heuristic
-For each unvisited city, the algorithm calculates:
-```
-score = distance / penalty
-```
-Cities with lower scores are prioritized – cheap to visit and costly to skip.
-
-### 4. Lookahead Strategy
-Instead of making short-sighted choices, the algorithm:
-- Simulates the next two steps (current → A → B)
-- Chooses A that minimizes total projected cost  
-  This prevents getting trapped in low-connectivity areas.
-
-### 5. 2-opt Local Optimization
-After building the route:
-- It iteratively swaps two edges if the total distance can be shortened
-- This improves the route without re-building it from scratch  
-  Result: significantly lower total cost.
+## 📌 Key Features
+- Adaptive **grid-based spatial filtering** to reduce search space.
+- Smart **start city selection** using centrality and neighbor density.
+- **Greedy lookahead routing** for foresight in decision-making.
+- Multiple **reinsertion strategies** to minimize penalty:
+  - Cheap skipped city insertion
+  - Global reinsertion
+  - Penalty-driven greedy reinsertion
+- **2-opt local optimization** to improve route quality.
+- Automatically adjusts `GRID_SIZE` based on input distribution.
 
 ---
 
-## Input Format (`input.txt`)
+## 🧠 Algorithm Explanation
 
+### Step 1: Grid-based Spatial Filtering
+- Cities are partitioned into spatial grid cells to only consider nearby cities during routing.
+- This improves performance from O(n²) to near-linear for local decisions.
+- `GRID_SIZE` is computed dynamically based on city density.
+
+### Step 2: Smart Start City Selection
+- Calculate the geometric center (avgX, avgY).
+- For each city, score = distance to center / (1 + nearby city count).
+- The city with the lowest score becomes the starting city.
+
+### Step 3: Greedy Route with Lookahead
+- At each step, pick the unvisited nearby city minimizing:
+  
+  	`score = d1 + 0.3 * d2`
+
+  where:
+  - `d1` = distance to candidate city
+  - `d2` = candidate's distance to its nearest neighbor
+
+- This lookahead prevents short-sighted greedy paths.
+
+### Step 4: Skipped City Reinsertion
+Three strategies are applied:
+
+1. `insertCheapSkippedCities`: Insert if added cost < 1.2 * penalty
+2. `attemptGlobalReinsertion`: Globally insert if gain < 1.4 * penalty
+3. `penaltyDrivenGreedyReinsertion`: Maximize penalty/cost ratio
+
+### Step 5: 2-opt Optimization
+- Iteratively checks and swaps edges to shorten the tour.
+- Runs until no more improvements are found.
+
+---
+
+## 📁 Input Format
 ```
-<penalty>
-<city_id> <x> <y>
-<city_id> <x> <y>
+penaltyPerCity
+id1 x1 y1
+id2 x2 y2
 ...
 ```
 
-Example:
+## 📄 Output Format (output.txt)
 ```
-2601
-0 200 800
-1 3600 2300
+totalCost visitedCityCount
+cityId1
+cityId2
 ...
 ```
 
 ---
 
-## Output Format (`output.txt`)
-
-```
-<total_cost> <number_of_visited_cities>
-<city_id_1>
-<city_id_2>
-...
-```
-
-Example:
-```
-445999 53
-73
-68
-11
-...
-```
+## 📈 Performance
+- Tested on inputs up to **50,000 cities**.
+- Achieves high city coverage with low total cost.
+- Runtime optimized via grid filtering and localized decision-making.
 
 ---
 
-## How to Run
-
-1. Place your input in `input.txt`
-2. Compile and run `Main.java`
-3. Output is written to `output.txt`
+## 🚀 How to Run
+```bash
+javac Main.java
+java Main
+```
+Ensure `input.txt` is present in the working directory.
 
 ---
-
-## File Structure
-
-```
-TSPwP/
-├── Main.java        # Main algorithm
-├── City.java        # City representation
-├── input.txt        # Input file
-├── output.txt       # Output file
-└── README.md        # Documentation
-```
-
----
-
-## Developer
-
-Göktuğ Sina Bekçioğulları  
-Computer Engineering – Marmara University  
-June 2025
