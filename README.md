@@ -126,6 +126,4 @@ This indicates:
 
 ---
 
-## 📄 License
 
-MIT License — free to use and modify.
