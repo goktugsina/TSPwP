@@ -109,7 +109,6 @@ Skipped cities are reconsidered with increasing levels of aggressiveness:
 3
 2
 ```
-
 This indicates:
 - Total cost = 350
 - 3 cities visited (1 city skipped with 100 penalty)
