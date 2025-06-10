@@ -9,7 +9,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         ArrayList<City> cities = new ArrayList<>();
 
-        File input = new File("C:\\Users\\Göktuğ Sina\\IdeaProjects\\TSPwP\\src\\input.txt");
+        File input = new File("input.txt");
         Scanner sc = new Scanner(input);
         penaltyPerCity = sc.nextInt();
 
