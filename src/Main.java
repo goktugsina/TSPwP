@@ -26,7 +26,7 @@ public class Main {
         sc.close();
 
 
-        GRID_SIZE = Math.max(10, (int)(penaltyPerCity * 0.6));
+        GRID_SIZE = Math.max(10, (int) (penaltyPerCity * 0.6));
 
 
         for (City city : cities) {
@@ -100,6 +100,7 @@ public class Main {
         best.visited = true;
         return best;
     }
+
     static ArrayList<City> buildGreedyRouteWithLookahead(List<City> cities, City start) {
         ArrayList<City> route = new ArrayList<>();
         route.add(start);
@@ -138,6 +139,7 @@ public class Main {
 
         return route;
     }
+
     static void forceInsertRemainingCities(ArrayList<City> route, List<City> cities) {
         for (City skipped : cities) {
             if (skipped.visited) continue;
@@ -266,6 +268,7 @@ public class Main {
     static class City {
         int id, x, y;
         boolean visited = false;
+
         City(int id, int x, int y) {
             this.id = id;
             this.x = x;
